@@ -25,11 +25,11 @@ class PhotoInfoViewController: UIViewController {
         
         store.fetchImageForPhoto(photo) { (result) in
             switch result {
-            case let .Success(image):
-                NSOperationQueue.mainQueue().addOperationWithBlock() {
+            case let .success(image):
+                OperationQueue.main.addOperation() {
                     self.imageView.image = image
                 }
-            case let .Failure(error):
+            case let .failure(error):
                 print("Error in fetching the image for photo: \(error)")
             }
         }

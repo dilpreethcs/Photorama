@@ -11,72 +11,72 @@ import UIKit
 class PhotoStore {
     
     enum ImageResult {
-        case Success(UIImage)
-        case Failure(ErrorType)
+        case success(UIImage)
+        case failure(Error)
     }
     
-    enum PhotoError: ErrorType {
-        case ImageCreationError
+    enum PhotoError: Error {
+        case imageCreationError
     }
     
-    let session: NSURLSession = {
-        let config = NSURLSessionConfiguration.defaultSessionConfiguration()
-        return NSURLSession(configuration: config)
+    let session: URLSession = {
+        let config = URLSessionConfiguration.default
+        return URLSession(configuration: config)
     }()
     
-    func fetchRecentPhotos(completion completion: (PhotosResult) -> Void) {
+    func fetchRecentPhotos(completion: @escaping (PhotosResult) -> Void) {
         let url = FlickrAPI.recentPhotosURL()
-        let request = NSURLRequest(URL: url)
+        let request = URLRequest(url: url as URL)
         
-        let task = session.dataTaskWithRequest(request) {
+        let task = session.dataTask(with: request, completionHandler: {
             (data, response, error) -> Void in
-            let result = self.processRecentPhotosRequest(data: data, error: error)
+            let result = self.processRecentPhotosRequest(data: data, error: error as NSError?)
             completion(result)
-        }
+        }) 
         task.resume()
     }
     
-    func processRecentPhotosRequest(data data: NSData?, error: NSError?) -> PhotosResult {
+    func processRecentPhotosRequest(data: Data?, error: NSError?) -> PhotosResult {
         guard let jsonData = data else {
-            return .Failure(error!)
+            return .failure(error!)
         }
         return FlickrAPI.photosFromJSONData(jsonData)
     }
     
-    func fetchImageForPhoto(photo: Photo, completion: (ImageResult) -> Void) {
+    func fetchImageForPhoto(_ photo: Photo, completion: @escaping (ImageResult) -> Void) {
         
         if let image = photo.image {
-            completion(.Success(image))
+            completion(.success(image))
             return
         }
         
         let photoURL = photo.remoteURL
-        let request = NSURLRequest(URL: photoURL)
+        let request = URLRequest(url: photoURL as URL)
         
-        let task = session.dataTaskWithRequest(request) {
+        let task = session.dataTask(with: request, completionHandler: {
             (data, response, error) -> Void in
             
-            let result = self.processImageRequest(data: data, error: error)
+            let result = self.processImageRequest(data: data, error: error as NSError?)
             
-            if case let .Success(image) = result {
+            if case let .success(image) = result {
                 photo.image = image
             }
             completion(result)
-        }
+        }) 
         task.resume()
         
     }
     
-    func processImageRequest(data data: NSData?, error: NSError?) -> ImageResult {
+    func processImageRequest(data: Data?, error: NSError?) -> ImageResult {
         guard let imageData = data,
-            image = UIImage(data: imageData) else {
+            let image = UIImage(data: imageData) else {
                 if data == nil {
-                    return .Failure(error!)
+                    return .failure(error!)
                 } else {
-                    return .Failure(PhotoError.ImageCreationError)
+                    return .failure(PhotoError.imageCreationError)
                 }
         }
-        return .Success(image)
+        return .success(image)
     }
     
 }
