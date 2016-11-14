@@ -20,7 +20,7 @@ class PhotoDataSource: NSObject, UICollectionViewDataSource {
         let identifier = "UICollectionViewCell"
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: identifier, for: indexPath) as! PhotoCollectionViewCell
         let photo = photos[(indexPath as NSIndexPath).row]
-        cell.updateWithImage(photo.image)
+        cell.configureCell(with: photo, atIndex: indexPath.row)
         return cell
     }
 }

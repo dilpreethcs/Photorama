@@ -8,11 +8,35 @@
 
 import UIKit
 
+@objc protocol PhotoCollectionViewCellDelegate {
+    func buttonTapped(atIndex: Int)
+}
+
 class PhotoCollectionViewCell: UICollectionViewCell {
+    
+    fileprivate var imageIndex: Int?
     
     @IBOutlet weak var spinner: UIActivityIndicatorView!
     @IBOutlet weak var imageView: UIImageView!
-    func updateWithImage(_ image: UIImage?) {
+    @IBOutlet weak var favouriteButton: UIButton!
+    
+    @IBAction func favouriteButtonDidTap(_ sender: UIButton) {
+        delegate?.buttonTapped(atIndex: imageIndex!)
+    }
+    
+    weak var delegate: PhotoCollectionViewCellDelegate?
+    
+    func configureCell(with photo: Photo, atIndex: Int)  {
+        updateWithImage(photo.image)
+        imageIndex = atIndex
+        if photo.favourite == true {
+            favouriteButton.backgroundColor = .blue
+        } else {
+            favouriteButton.backgroundColor = .gray
+        }
+    }
+    
+    fileprivate func updateWithImage(_ image: UIImage?) {
         if let imageToDisplay = image {
             spinner.stopAnimating()
             imageView.image = imageToDisplay

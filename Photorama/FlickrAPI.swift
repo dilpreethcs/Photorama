@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import CoreData
 
 enum Method: String {
     case RecentPhotos = "flickr.photos.getRecent"
@@ -72,7 +73,7 @@ struct FlickrAPI {
     
     // MARK: Fetch Photo
     
-    static func photosFromJSONData(_ data: Data) -> PhotosResult {
+    static func photosFromJSONData(_ data: Data, inContext context : NSManagedObjectContext) -> PhotosResult {
         do {
             let jsonObject: Any = try JSONSerialization.jsonObject(with: data, options: [])
             
@@ -85,7 +86,7 @@ struct FlickrAPI {
             var finalPhotos = [Photo]()
             
             for photoJSON in photosArray {
-                if let photo = photoFromJSONObject(photoJSON) {
+                if let photo = photoFromJSONObject(photoJSON, inContext: context) {
                     finalPhotos.append(photo)
                 }
             }
@@ -99,15 +100,38 @@ struct FlickrAPI {
         }
     }
     
-    static func photoFromJSONObject(_ json: [String : AnyObject ]) -> Photo? {
+    static func photoFromJSONObject(_ json: [String : AnyObject ], inContext context : NSManagedObjectContext) -> Photo? {
         guard let photoID = json["id"] as? String,
             let title = json["title"] as? String,
             let dateString = json["datetaken"] as? String,
             let photoURLString = json["url_h"] as? String,
-            let url = URL(string: photoURLString),
+            let url = NSURL(string: photoURLString),
             let dateTaken = dateFormatter.date(from: dateString) else {
                 return nil
         }
-        return Photo(title: title, remoteURL: url, photoID: photoID, dateTaken: dateTaken)
+        var fetchedPhotos = NSAsynchronousFetchResult<Photo>.init()
+        
+        let fetchRequest: NSFetchRequest<Photo> = Photo.fetchRequest()
+        let predicate = NSPredicate(format: "photoID == \(photoID)")
+        fetchRequest.predicate = predicate
+        
+        context.performAndWait() {
+            fetchedPhotos = try! context.execute(fetchRequest) as! NSAsynchronousFetchResult<Photo>
+        }
+        
+        if (fetchedPhotos.finalResult?.count ?? 0) > 0 {
+            return fetchedPhotos.finalResult?.first
+        }
+        
+        var photo: Photo!
+        context.performAndWait {
+            photo = NSEntityDescription.insertNewObject(forEntityName: "Photo", into: context) as! Photo
+            photo.title = title
+            photo.photoID = photoID
+            photo.remoteURL = url
+            photo.dateTaken = dateTaken as NSDate
+            photo.timesViewed = 0
+        }
+        return photo
     }
 }

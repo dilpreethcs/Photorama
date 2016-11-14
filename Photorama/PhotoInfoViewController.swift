@@ -17,6 +17,7 @@ class PhotoInfoViewController: UIViewController {
     }
     
     var store: PhotoStore!
+    let coreDataStack = CoreDataStack(modelName: "Photorama")
 
     @IBOutlet weak var imageView: UIImageView!
 
@@ -28,6 +29,13 @@ class PhotoInfoViewController: UIViewController {
             case let .success(image):
                 OperationQueue.main.addOperation() {
                     self.imageView.image = image
+                }
+                self.navigationItem.title = "Viewed \(self.photo.timesViewed) times."
+                self.photo.timesViewed += 1
+                do {
+                    try self.store.coreDataStack.saveChanges()
+                } catch let error {
+                    print("Core Data save failed: \(error)")
                 }
             case let .failure(error):
                 print("Error in fetching the image for photo: \(error)")
@@ -41,14 +49,19 @@ class PhotoInfoViewController: UIViewController {
     }
     
 
-    /*
     // MARK: - Navigation
 
     // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         // Get the new view controller using segue.destinationViewController.
         // Pass the selected object to the new view controller.
+        if segue.identifier == "ShowTags" {
+            let navController = segue.destination as! UINavigationController
+            let tagController = navController.topViewController as! TagsTableViewController
+            
+            tagController.photoStore = store
+            tagController.photo = photo
+        }
     }
-    */
 
 }
